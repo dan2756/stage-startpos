@@ -1,0 +1,73 @@
+{
+	"geode": "5.11.1",
+	"gd": {
+		"win": "2.2081"
+	},
+	"id": "dan2756.blitzkrieg-target",
+	"name": "Blitzkrieg Target",
+	"version": "v1.0.0",
+	"developer": "dan2756",
+	"description": "Shows the percent your current Blitzkrieg run has to reach next to the percentage",
+	"tags": [
+		"gameplay",
+		"interface",
+		"offline",
+		"utility"
+	],
+	"dependencies": {
+		"zhulis.blitzkrieg": ">=v2.2.3",
+		"cvolton.level-id-api": ">=v2.0.0"
+	},
+	"settings": {
+		"enabled": {
+			"type": "bool",
+			"name": "Show run target",
+			"description": "Add the percent the current Blitzkrieg run has to reach to the percentage, like <cy>44.27%/74.27%</c>.",
+			"default": true
+		},
+		"show-passed": {
+			"type": "bool",
+			"name": "Show for passed runs",
+			"description": "Keep showing the target when the run from this start position is already passed in the current stage.",
+			"default": true,
+			"enable-if": "enabled"
+		},
+		"decimals": {
+			"type": "int",
+			"name": "Target decimals",
+			"description": "Decimal places of the target percent.",
+			"default": 2,
+			"min": 0,
+			"max": 4,
+			"enable-if": "enabled"
+		},
+		"slash-gap": {
+			"type": "float",
+			"name": "Space around the slash",
+			"description": "How far the slash sits from the percentages on each side. <cy>0</c> is no space, <cy>15</c> is a full space.",
+			"default": 6,
+			"min": 0,
+			"max": 15,
+			"enable-if": "enabled",
+			"control": {
+				"slider": true,
+				"slider-step": 1,
+				"arrow-step": 1
+			}
+		},
+		"percent-below": {
+			"type": "bool",
+			"name": "Percentage under the bar",
+			"description": "In levels with a Blitzkrieg profile, centre the percentage under the progress bar. Needs the progress bar turned on in the game's options.",
+			"default": true,
+			"enable-if": "enabled"
+		},
+		"markers": {
+			"type": "bool",
+			"name": "Run markers on the bar",
+			"description": "Draw a line on the progress bar where the run starts and another where it has to get to.",
+			"default": true,
+			"enable-if": "enabled"
+		}
+	}
+}
