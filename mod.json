@@ -16,7 +16,13 @@
 	],
 	"dependencies": {
 		"zhulis.blitzkrieg": ">=v2.2.3",
-		"cvolton.level-id-api": ">=v2.0.0"
+		"cvolton.level-id-api": ">=v2.0.0",
+		"geode.node-ids": ">=v1.23.3"
+	},
+	"resources": {
+		"sprites": [
+			"resources/*.png"
+		]
 	},
 	"settings": {
 		"enabled": {
