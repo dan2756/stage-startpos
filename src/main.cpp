@@ -1,4 +1,5 @@
 #include <Geode/Geode.hpp>
+#include <Geode/binding/FMODAudioEngine.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <cvolton.level-id-api/include/EditorIDs.hpp>
 
@@ -9,11 +10,49 @@ namespace {
     // level's profile link in its saved values, the stages in its save dir.
     constexpr auto BLITZKRIEG_ID = "zhulis.blitzkrieg";
 
-    // The tolerance Blitzkrieg matches a run's start against a range with
-    constexpr float START_EPS = 0.01f;
+    // The tolerance Blitzkrieg matches a run's start and end against a range with
+    constexpr float RUN_EPS = 0.01f;
 
     constexpr ccColor4B MARK_COLOR = { 255, 255, 255, 255 };
     constexpr float MARK_WIDTH = 1.5f;
+
+    // The chime from resources/chime.wav, loaded the first time it plays
+    FMOD::Sound* chimeSound() {
+        static bool tried = false;
+        static FMOD::Sound* sound = nullptr;
+        if (tried) return sound;
+
+        auto engine = FMODAudioEngine::sharedEngine();
+        if (!engine || !engine->m_system) return nullptr;
+        tried = true;
+
+        auto path = utils::string::pathToString(Mod::get()->getResourcesDir() / "chime.wav");
+        auto result = engine->m_system->createSound(
+            path.c_str(), FMOD_DEFAULT | FMOD_CREATESAMPLE | FMOD_LOOP_OFF, nullptr, &sound
+        );
+        if (result != FMOD_OK) {
+            log::warn("Couldn't load the chime {} (FMOD error {})", path, static_cast<int>(result));
+            sound = nullptr;
+        }
+        return sound;
+    }
+
+    // At the chime volume times the game's own sound effect volume
+    void playChime(float volume) {
+        auto engine = FMODAudioEngine::sharedEngine();
+        if (!engine) return;
+
+        volume *= engine->m_sfxVolume;
+        if (volume <= 0.f) return;
+
+        auto sound = chimeSound();
+        if (!sound) return;
+
+        FMOD::Channel* channel = nullptr;
+        if (engine->m_system->playSound(sound, nullptr, true, &channel) != FMOD_OK || !channel) return;
+        channel->setVolume(volume);
+        channel->setPaused(false);
+    }
 
     // The file of the Blitzkrieg profile linked to the level
     std::optional<std::filesystem::path> linkedProfile(GJGameLevel* level) {
@@ -54,7 +93,7 @@ namespace {
                 if (!passed) open = true;
 
                 float from = range["from"].asDouble().unwrapOr(0.0);
-                if (std::abs(from - start) >= START_EPS) continue;
+                if (std::abs(from - start) >= RUN_EPS) continue;
                 if (passed && !showPassed) continue;
 
                 // A run still to pass wins over a passed one, then the nearer goal
@@ -97,6 +136,16 @@ class $modify(TargetPlayLayer, PlayLayer) {
         CCLayerColor* m_startMark = nullptr;
         CCLayerColor* m_targetMark = nullptr;
         bool m_marksDirty = false;
+
+        // What happens when the run reaches its target, and whether it has this attempt
+        bool m_green = true;
+        ccColor3B m_greenColor = { 85, 255, 85 };
+        bool m_chime = true;
+        float m_chimeVolume = 0.7f;
+        bool m_chimed = false;
+
+        // The colour we put on the label, so it can be told from another mod's
+        std::optional<ccColor3B> m_tint;
     };
 
     static void onModify(auto& self) {
@@ -113,6 +162,7 @@ class $modify(TargetPlayLayer, PlayLayer) {
         fields->m_tracked = false;
         fields->m_target = std::nullopt;
         fields->m_marksDirty = true;
+        fields->m_chimed = false;
 
         auto mod = Mod::get();
         if (!mod->getSettingValue<bool>("enabled") || m_level->isPlatformer()) return;
@@ -121,6 +171,10 @@ class $modify(TargetPlayLayer, PlayLayer) {
         fields->m_slashGap = mod->getSettingValue<double>("slash-gap");
         fields->m_percentBelow = mod->getSettingValue<bool>("percent-below");
         fields->m_showMarks = mod->getSettingValue<bool>("markers");
+        fields->m_green = mod->getSettingValue<bool>("reached-green");
+        fields->m_greenColor = mod->getSettingValue<ccColor3B>("reached-color");
+        fields->m_chime = mod->getSettingValue<bool>("chime");
+        fields->m_chimeVolume = mod->getSettingValue<double>("chime-volume");
         fields->m_start = this->getCurrentPercent();
 
         if (auto profile = linkedProfile(m_level)) {
@@ -205,6 +259,27 @@ class $modify(TargetPlayLayer, PlayLayer) {
         fields->m_targetMark->setPositionX(left + m_progressWidth * *fields->m_target / 100.f);
     }
 
+    // Green once the run has reached its target, unless another mod has restyled
+    // the percentage since: Golden Best's gold font or colour for a new best wins
+    void colorLabel(bool green) {
+        auto fields = m_fields.self();
+        auto color = m_percentageLabel->getColor();
+        bool ours = fields->m_tint && ccc3BEqual(color, *fields->m_tint);
+
+        bool restyled = std::string_view(m_percentageLabel->getFntFile()).find("goldFont") != std::string_view::npos
+            || (!ours && !ccc3BEqual(color, ccWHITE));
+
+        if (green && !restyled) {
+            if (!ccc3BEqual(color, fields->m_greenColor)) m_percentageLabel->setColor(fields->m_greenColor);
+            fields->m_tint = fields->m_greenColor;
+            return;
+        }
+
+        // A colour another mod put on stays; the gold font goes back to its own colours
+        if (ours) m_percentageLabel->setColor(ccWHITE);
+        fields->m_tint = std::nullopt;
+    }
+
     void toggleProgressbar() {
         // The game lays the label out again from its own position
         if (m_percentageLabel && m_progressBar) this->unstackLabel();
@@ -232,6 +307,13 @@ class $modify(TargetPlayLayer, PlayLayer) {
             if (fields->m_target) this->padSlash(fields->m_base.size(), text.size(), fields->m_slashGap);
         }
         fields->m_written = std::move(text);
+
+        bool reached = fields->m_target && this->getCurrentPercent() + RUN_EPS >= *fields->m_target;
+        if (reached && !fields->m_chimed) {
+            fields->m_chimed = true;
+            if (fields->m_chime) playChime(fields->m_chimeVolume);
+        }
+        this->colorLabel(reached && fields->m_green);
 
         this->stackLabel();
 

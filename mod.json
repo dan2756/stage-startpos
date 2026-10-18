@@ -1,11 +1,11 @@
 {
-	"geode": "5.11.1",
+	"geode": "5.11.2",
 	"gd": {
 		"win": "2.2081"
 	},
 	"id": "dan2756.blitzkrieg-target",
 	"name": "Blitzkrieg Target",
-	"version": "v1.0.0",
+	"version": "v1.1.0",
 	"developer": "dan2756",
 	"description": "Shows the percent your current Blitzkrieg run has to reach next to the percentage",
 	"tags": [
@@ -22,6 +22,9 @@
 	"resources": {
 		"sprites": [
 			"resources/*.png"
+		],
+		"files": [
+			"resources/*.wav"
 		]
 	},
 	"settings": {
@@ -74,6 +77,40 @@
 			"description": "Draw a line on the progress bar where the run starts and another where it has to get to.",
 			"default": true,
 			"enable-if": "enabled"
+		},
+		"reached-green": {
+			"type": "bool",
+			"name": "Green at the target",
+			"description": "Turn the percentage green once the run reaches its target. A new best from <cy>Golden Best</c> stays gold.",
+			"default": true,
+			"enable-if": "enabled"
+		},
+		"reached-color": {
+			"type": "color",
+			"name": "Target reached color",
+			"default": "#55FF55",
+			"enable-if": "enabled && reached-green"
+		},
+		"chime": {
+			"type": "bool",
+			"name": "Chime at the target",
+			"description": "Play a little chime the moment the run reaches its target.",
+			"default": true,
+			"enable-if": "enabled"
+		},
+		"chime-volume": {
+			"type": "float",
+			"name": "Chime volume",
+			"description": "On top of the game's own sound effect volume.",
+			"default": 0.7,
+			"min": 0.0,
+			"max": 1.0,
+			"enable-if": "enabled && chime",
+			"control": {
+				"slider": true,
+				"slider-step": 0.05,
+				"arrow-step": 0.05
+			}
 		}
 	}
 }
