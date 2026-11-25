@@ -13,7 +13,7 @@ class $modify(TargetPauseLayer, PauseLayer) {
 
         // The same green circle as the gear, with the mod's own icon on it
         auto sprite = CircleButtonSprite::createWithSprite(
-            "blitz-icon.png"_spr, 1.f, CircleBaseColor::Green, CircleBaseSize::Medium
+            "stage-icon.png"_spr, 1.f, CircleBaseColor::Green, CircleBaseSize::Medium
         );
 
         auto gear = menu->getChildByID("options-button");

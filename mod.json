@@ -3,11 +3,11 @@
 	"gd": {
 		"win": "2.2081"
 	},
-	"id": "dan2756.blitzkrieg-target",
-	"name": "Blitzkrieg Target",
+	"id": "dan2756.stage-startpos",
+	"name": "Stage Startpos",
 	"version": "v1.1.1",
 	"developer": "dan2756",
-	"description": "Shows the percent your current Blitzkrieg run has to reach next to the percentage",
+	"description": "Shows the percent your current stage run has to reach next to the percentage",
 	"tags": [
 		"gameplay",
 		"interface",
@@ -31,7 +31,7 @@
 		"enabled": {
 			"type": "bool",
 			"name": "Show run target",
-			"description": "Add the percent the current Blitzkrieg run has to reach to the percentage, like <cy>44.27%/74.27%</c>.",
+			"description": "Add the percent the current stage run has to reach to the percentage, like <cy>44.27%/74.27%</c>.",
 			"default": true
 		},
 		"show-passed": {
@@ -67,7 +67,7 @@
 		"percent-below": {
 			"type": "bool",
 			"name": "Percentage under the bar",
-			"description": "In levels with a Blitzkrieg profile, centre the percentage under the progress bar. Needs the progress bar turned on in the game's options.",
+			"description": "In levels with a stage profile, centre the percentage under the progress bar. Needs the progress bar turned on in the game's options.",
 			"default": true,
 			"enable-if": "enabled"
 		},
