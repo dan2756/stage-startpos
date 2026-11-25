@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.0
+- Once the run reaches its target, the target goes away and only the percentage stays.
+- Fixed the mod not loading: Geode only accepts `>=` for dependency versions.
+
 ## v1.1.1
 - Renamed to Stage Startpos.
 - The target is now read again after each reset and start-position switch finishes, instead of at the start of the attempt.

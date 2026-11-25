@@ -324,13 +324,15 @@ class $modify(TargetPlayLayer, PlayLayer) {
 
         fields->m_base = current;
 
-        auto text = fields->m_target
+        // A run that has reached its target is done, so only the percentage stays
+        bool showTarget = fields->m_target && !reached;
+        auto text = showTarget
             ? fmt::format("{}/{:.{}f}%", fields->m_base, *fields->m_target, fields->m_decimals)
             : fields->m_base;
 
         if (text != current) {
             m_percentageLabel->setString(text.c_str());
-            if (fields->m_target) this->padSlash(fields->m_base.size(), text.size(), fields->m_slashGap);
+            if (showTarget) this->padSlash(fields->m_base.size(), text.size(), fields->m_slashGap);
         }
         fields->m_written = std::move(text);
 

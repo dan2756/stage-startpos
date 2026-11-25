@@ -5,7 +5,7 @@
 	},
 	"id": "dan2756.stage-startpos",
 	"name": "Stage Startpos",
-	"version": "v1.1.1",
+	"version": "v1.2.0",
 	"developer": "dan2756",
 	"description": "Shows the percent your current stage run has to reach next to the percentage",
 	"links": {
@@ -23,7 +23,7 @@
 	],
 	"dependencies": {
 		"zhulis.blitzkrieg": ">=v2.2.3",
-		"cvolton.level-id-api": "<v2.1.0",
+		"cvolton.level-id-api": ">=v2.0.0",
 		"geode.node-ids": ">=v1.23.3"
 	},
 	"resources": {
@@ -38,7 +38,7 @@
 		"enabled": {
 			"type": "bool",
 			"name": "Show run target",
-			"description": "Add the percent the current stage run has to reach to the percentage, like <cy>44.27%/74.27%</c>.",
+			"description": "Add the percent the current stage run has to reach to the percentage, like <cy>44.27%/74.27%</c>. Once the run reaches it, only the percentage stays.",
 			"default": true
 		},
 		"show-passed": {

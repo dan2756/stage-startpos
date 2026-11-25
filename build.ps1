@@ -17,6 +17,8 @@ $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.e
 $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.CMake.Project -property installationPath
 if (-not $vs) { throw "No Visual Studio install with the C++ CMake tools was found." }
 
+& "$PSScriptRoot\tools\pin-deps.ps1"
+
 $steps = @(
     "`"$vs\VC\Auxiliary\Build\vcvars64.bat`"",
     # Codegen is built from the pinned bindings: the prebuilt download is always

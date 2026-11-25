@@ -18,6 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Pin dependencies to their GD 2.2081 versions
+        shell: pwsh
+        run: ./tools/pin-deps.ps1
+
       - name: Build the mod
         id: build
         uses: geode-sdk/build-geode-mod@main
