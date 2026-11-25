@@ -22,9 +22,12 @@ jobs:
         id: build
         uses: geode-sdk/build-geode-mod@main
         with:
-          # The bindings commit the installed Geode v5.11.2 loader was built
-          # with, so codegen matches GD 2.2081 even after main moves on.
+          # Geode v5.11.2 (from mod.json), the CLI and bindings commit it was
+          # built with, and codegen built from source: the prebuilt codegen is
+          # always the newest and generates headers v5 doesn't have.
+          cli: v3.9.0
           bindings-ref: 1605f500d053f8de122bf5c7dc6d17c24866e02e
+          configure-args: -DSKIP_BUILDING_CODEGEN=OFF
 
       - uses: actions/upload-artifact@v7
         with:
