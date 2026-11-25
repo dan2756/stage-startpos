@@ -1,0 +1,14 @@
+# Changelog
+
+## v1.1.1
+- Renamed to Stage Startpos.
+- The target is now read again after each reset and start-position switch finishes, instead of at the start of the attempt.
+- The percentage turns green at the target even when Golden Best is active, and goes back to normal on the next attempt.
+
+## v1.1.0
+- A chime plays and the percentage turns green the moment the run reaches its target.
+- A button under the pause menu's settings gear opens the mod's settings.
+
+## v1.0.0
+- Shows the percent your current stage run has to reach next to the percentage.
+- Centres the percentage under the progress bar and marks the run's start and target on the bar.

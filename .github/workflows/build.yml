@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Windows
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the mod
+        id: build
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          # The bindings commit the installed Geode v5.11.2 loader was built
+          # with, so codegen matches GD 2.2081 even after main moves on.
+          bindings-ref: 1605f500d053f8de122bf5c7dc6d17c24866e02e
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Build Output
+          path: ${{ steps.build.outputs.build-output }}/*.geode
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTPUT: ${{ steps.build.outputs.build-output }}
+        run: |
+          version=$(jq -r .version mod.json)
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME doesn't match mod.json version $version" >&2
+            exit 1
+          fi
+          # This version's section of changelog.md becomes the release notes
+          awk -v v="## $version" '$0 == v {on=1; next} /^## / {on=0} on' changelog.md > notes.md
+          gh release create "$GITHUB_REF_NAME" "$OUTPUT"/*.geode \
+            --title "Stage Startpos $GITHUB_REF_NAME" --notes-file notes.md

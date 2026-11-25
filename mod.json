@@ -8,6 +8,13 @@
 	"version": "v1.1.1",
 	"developer": "dan2756",
 	"description": "Shows the percent your current stage run has to reach next to the percentage",
+	"links": {
+		"source": "https://github.com/dan2756/stage-startpos"
+	},
+	"issues": {
+		"info": "Report bugs on GitHub with the level ID and a screenshot.",
+		"url": "https://github.com/dan2756/stage-startpos/issues"
+	},
 	"tags": [
 		"gameplay",
 		"interface",
