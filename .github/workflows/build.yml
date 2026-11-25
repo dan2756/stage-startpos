@@ -44,6 +44,6 @@ jobs:
             exit 1
           fi
           # This version's section of changelog.md becomes the release notes
-          awk -v v="## $version" '$0 == v {on=1; next} /^## / {on=0} on' changelog.md > notes.md
+          awk -v v="## $version" '{sub(/\r$/, "")} $0 == v {on=1; next} /^## / {on=0} on' changelog.md > notes.md
           gh release create "$GITHUB_REF_NAME" "$OUTPUT"/*.geode \
             --title "Stage Startpos $GITHUB_REF_NAME" --notes-file notes.md
