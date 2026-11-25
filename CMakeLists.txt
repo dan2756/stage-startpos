@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-project(BlitzkriegTarget VERSION 1.1.0)
+project(BlitzkriegTarget VERSION 1.1.1)
 
 add_library(${PROJECT_NAME} SHARED src/main.cpp src/PauseButton.cpp)
 
@@ -16,3 +16,11 @@ endif()
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 setup_geode_mod(${PROJECT_NAME})
+
+option(BLITZKRIEG_TARGET_BUILD_TESTS "Build run-target regression tests" OFF)
+if (BLITZKRIEG_TARGET_BUILD_TESTS)
+    enable_testing()
+    add_executable(RunTargetTests tests/RunTarget.cpp)
+    target_link_libraries(RunTargetTests PRIVATE mat-json-impl)
+    add_test(NAME RunTargetTests COMMAND RunTargetTests)
+endif()

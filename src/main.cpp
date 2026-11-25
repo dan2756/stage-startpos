@@ -2,6 +2,7 @@
 #include <Geode/binding/FMODAudioEngine.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <cvolton.level-id-api/include/EditorIDs.hpp>
+#include "RunTarget.hpp"
 
 using namespace geode::prelude;
 
@@ -11,7 +12,7 @@ namespace {
     constexpr auto BLITZKRIEG_ID = "zhulis.blitzkrieg";
 
     // The tolerance Blitzkrieg matches a run's start and end against a range with
-    constexpr float RUN_EPS = 0.01f;
+    constexpr float RUN_EPS = target::RUN_EPS;
 
     constexpr ccColor4B MARK_COLOR = { 255, 255, 255, 255 };
     constexpr float MARK_WIDTH = 1.5f;
@@ -73,43 +74,6 @@ namespace {
         }
         return std::nullopt;
     }
-
-    // The percent a run starting at `start` has to reach in the stage Blitzkrieg is on
-    std::optional<float> runTarget(std::filesystem::path const& profilePath, float start, bool showPassed) {
-        auto profile = file::readJson(profilePath);
-        if (!profile) return std::nullopt;
-
-        auto const json = std::move(profile).unwrap();
-
-        for (auto const& stage : json["data"]["stages"]) {
-            bool open = false;
-            bool targetPassed = false;
-            std::optional<float> target;
-
-            for (auto const& range : stage["ranges"]) {
-                if (!range["consider"].asBool().unwrapOr(true)) continue;
-
-                bool passed = range["checked"].asBool().unwrapOr(false);
-                if (!passed) open = true;
-
-                float from = range["from"].asDouble().unwrapOr(0.0);
-                if (std::abs(from - start) >= RUN_EPS) continue;
-                if (passed && !showPassed) continue;
-
-                // A run still to pass wins over a passed one, then the nearer goal
-                float to = range["to"].asDouble().unwrapOr(0.0);
-                if (!target || (targetPassed && !passed) || (targetPassed == passed && to < *target)) {
-                    target = to;
-                    targetPassed = passed;
-                }
-            }
-
-            // Blitzkrieg only tracks the first stage that still has a run to pass
-            if (open) return target;
-        }
-
-        return std::nullopt;
-    }
 }
 
 class $modify(TargetPlayLayer, PlayLayer) {
@@ -118,6 +82,8 @@ class $modify(TargetPlayLayer, PlayLayer) {
         bool m_tracked = false;
         float m_start = 0.f;
         std::optional<float> m_target;
+        bool m_resetting = false;
+        bool m_pending = true;
 
         int m_decimals = 2;
         float m_slashGap = 0.f;
@@ -144,8 +110,11 @@ class $modify(TargetPlayLayer, PlayLayer) {
         float m_chimeVolume = 0.7f;
         bool m_chimed = false;
 
-        // The colour we put on the label, so it can be told from another mod's
-        std::optional<ccColor3B> m_tint;
+        // Restore upstream styling before the next update, then apply completion
+        // styling last so Golden Best cannot mask a completed run.
+        bool m_styled = false;
+        std::string m_originalFont;
+        ccColor3B m_originalColor = ccWHITE;
     };
 
     static void onModify(auto& self) {
@@ -153,19 +122,35 @@ class $modify(TargetPlayLayer, PlayLayer) {
         if (!self.setHookPriorityPost("PlayLayer::updateProgressbar", Priority::VeryLate)) {
             log::warn("Failed to set hook priority.");
         }
+        if (!self.setHookPriorityPost("PlayLayer::resetLevel", Priority::VeryLate)) {
+            log::warn("Failed to set reset hook priority.");
+        }
     }
 
     void resetLevel() {
-        PlayLayer::resetLevel();
-
         auto fields = m_fields.self();
+        fields->m_resetting = true;
+        fields->m_pending = true;
         fields->m_tracked = false;
         fields->m_target = std::nullopt;
         fields->m_marksDirty = true;
         fields->m_chimed = false;
+        this->restoreLabel();
+
+        PlayLayer::resetLevel();
+
+        fields->m_start = this->getCurrentPercent();
+        fields->m_resetting = false;
+    }
+
+    // Resolve on the first stable progress update, after every reset hook and
+    // the start-position switcher have finished changing the selected start.
+    void refreshTarget() {
+        auto fields = m_fields.self();
+        fields->m_pending = false;
 
         auto mod = Mod::get();
-        if (!mod->getSettingValue<bool>("enabled") || m_level->isPlatformer()) return;
+        if (!m_level || !mod->getSettingValue<bool>("enabled") || m_level->isPlatformer()) return;
 
         fields->m_decimals = mod->getSettingValue<int64_t>("decimals");
         fields->m_slashGap = mod->getSettingValue<double>("slash-gap");
@@ -175,12 +160,28 @@ class $modify(TargetPlayLayer, PlayLayer) {
         fields->m_greenColor = mod->getSettingValue<ccColor3B>("reached-color");
         fields->m_chime = mod->getSettingValue<bool>("chime");
         fields->m_chimeVolume = mod->getSettingValue<double>("chime-volume");
-        fields->m_start = this->getCurrentPercent();
-
         if (auto profile = linkedProfile(m_level)) {
             fields->m_tracked = true;
-            fields->m_target = runTarget(
-                *profile, fields->m_start, mod->getSettingValue<bool>("show-passed")
+            auto json = file::readJson(*profile);
+            if (!json) return;
+
+            // Start objects are stable while a spawn/reset percentage can be a
+            // little early or late. Checkpoints must keep their own run start.
+            if (m_startPosObject && m_levelLength > 0.f
+                && !(m_isPracticeMode && m_checkpointArray && m_checkpointArray->count())) {
+                float x = m_startPosObject->getPositionX();
+                float positionPercent = x / m_levelLength * 100.f;
+                float levelTime = this->timeForPos({ m_levelLength, 0.f }, 0.f, 0.f, true, 0.f);
+                float timePercent = levelTime > 0.f
+                    ? this->timeForPos({ x, 0.f }, 0.f, 0.f, true, 0.f) / levelTime * 100.f
+                    : positionPercent;
+                fields->m_start = target::startObjectPercent(
+                    this->getCurrentPercent(), positionPercent, timePercent
+                );
+            }
+
+            fields->m_target = target::runTarget(
+                json.unwrap(), fields->m_start, mod->getSettingValue<bool>("show-passed")
             );
         }
     }
@@ -259,25 +260,39 @@ class $modify(TargetPlayLayer, PlayLayer) {
         fields->m_targetMark->setPositionX(left + m_progressWidth * *fields->m_target / 100.f);
     }
 
-    // Green once the run has reached its target, unless another mod has restyled
-    // the percentage since: Golden Best's gold font or colour for a new best wins
-    void colorLabel(bool green) {
+    void restoreLabel() {
         auto fields = m_fields.self();
-        auto color = m_percentageLabel->getColor();
-        bool ours = fields->m_tint && ccc3BEqual(color, *fields->m_tint);
+        if (!m_percentageLabel) return;
 
-        bool restyled = std::string_view(m_percentageLabel->getFntFile()).find("goldFont") != std::string_view::npos
-            || (!ours && !ccc3BEqual(color, ccWHITE));
-
-        if (green && !restyled) {
-            if (!ccc3BEqual(color, fields->m_greenColor)) m_percentageLabel->setColor(fields->m_greenColor);
-            fields->m_tint = fields->m_greenColor;
-            return;
+        this->unstackLabel();
+        if (fields->m_styled) {
+            if (std::string_view(m_percentageLabel->getFntFile()) != fields->m_originalFont) {
+                m_percentageLabel->setFntFile(fields->m_originalFont.c_str());
+            }
+            m_percentageLabel->setColor(fields->m_originalColor);
+            fields->m_styled = false;
         }
 
-        // A colour another mod put on stays; the gold font goes back to its own colours
-        if (ours) m_percentageLabel->setColor(ccWHITE);
-        fields->m_tint = std::nullopt;
+        // Other mods should receive the game's percentage, without our suffix.
+        if (std::string_view(m_percentageLabel->getString()) == fields->m_written) {
+            m_percentageLabel->setString(fields->m_base.c_str());
+        }
+        fields->m_written.clear();
+    }
+
+    void colorLabel(bool green) {
+        if (!green) return;
+        auto fields = m_fields.self();
+        fields->m_originalFont = m_percentageLabel->getFntFile();
+        fields->m_originalColor = m_percentageLabel->getColor();
+        fields->m_styled = true;
+
+        // goldFont's glyphs are already yellow, so tinting them green cannot
+        // produce the requested colour. Use white glyphs until the next update.
+        if (fields->m_originalFont.find("goldFont") != std::string::npos) {
+            m_percentageLabel->setFntFile("bigFont.fnt");
+        }
+        m_percentageLabel->setColor(fields->m_greenColor);
     }
 
     void toggleProgressbar() {
@@ -288,15 +303,26 @@ class $modify(TargetPlayLayer, PlayLayer) {
     }
 
     void updateProgressbar() {
+        this->restoreLabel();
         PlayLayer::updateProgressbar();
 
         if (!m_percentageLabel || !m_progressBar) return;
 
         auto fields = m_fields.self();
+        if (fields->m_resetting) return;
+        if (fields->m_pending) this->refreshTarget();
+
+        bool reached = fields->m_target && (fields->m_chimed
+            || this->getCurrentPercent() + RUN_EPS >= *fields->m_target);
+        if (reached && !fields->m_chimed) {
+            fields->m_chimed = true;
+            if (fields->m_chime) playChime(fields->m_chimeVolume);
+        }
+        // Font changes rebuild the glyphs; apply them before slash spacing.
+        this->colorLabel(reached && fields->m_green);
         std::string current = m_percentageLabel->getString();
 
-        // Anything but our own text is a fresh percentage from the game
-        if (current != fields->m_written) fields->m_base = current;
+        fields->m_base = current;
 
         auto text = fields->m_target
             ? fmt::format("{}/{:.{}f}%", fields->m_base, *fields->m_target, fields->m_decimals)
@@ -307,13 +333,6 @@ class $modify(TargetPlayLayer, PlayLayer) {
             if (fields->m_target) this->padSlash(fields->m_base.size(), text.size(), fields->m_slashGap);
         }
         fields->m_written = std::move(text);
-
-        bool reached = fields->m_target && this->getCurrentPercent() + RUN_EPS >= *fields->m_target;
-        if (reached && !fields->m_chimed) {
-            fields->m_chimed = true;
-            if (fields->m_chime) playChime(fields->m_chimeVolume);
-        }
-        this->colorLabel(reached && fields->m_green);
 
         this->stackLabel();
 

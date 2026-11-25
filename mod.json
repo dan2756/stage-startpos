@@ -5,7 +5,7 @@
 	},
 	"id": "dan2756.blitzkrieg-target",
 	"name": "Blitzkrieg Target",
-	"version": "v1.1.0",
+	"version": "v1.1.1",
 	"developer": "dan2756",
 	"description": "Shows the percent your current Blitzkrieg run has to reach next to the percentage",
 	"tags": [
@@ -81,7 +81,7 @@
 		"reached-green": {
 			"type": "bool",
 			"name": "Green at the target",
-			"description": "Turn the percentage green once the run reaches its target. A new best from <cy>Golden Best</c> stays gold.",
+			"description": "Turn the percentage green once the run reaches its target, including when <cy>Golden Best</c> is active. The color resets on the next attempt.",
 			"default": true,
 			"enable-if": "enabled"
 		},
