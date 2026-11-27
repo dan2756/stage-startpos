@@ -5,7 +5,7 @@
 	},
 	"id": "dan2756.stage-startpos",
 	"name": "Stage Startpos",
-	"version": "v1.2.0",
+	"version": "v1.2.1",
 	"developer": "dan2756",
 	"description": "Shows the percent your current stage run has to reach next to the percentage",
 	"links": {
@@ -38,15 +38,8 @@
 		"enabled": {
 			"type": "bool",
 			"name": "Show run target",
-			"description": "Add the percent the current stage run has to reach to the percentage, like <cy>44.27%/74.27%</c>. Once the run reaches it, only the percentage stays.",
+			"description": "Add the percent the current stage run has to reach to the percentage, like <cy>44.27%/74.27%</c>. Start positions whose run is already done in the current stage show just the percentage.",
 			"default": true
-		},
-		"show-passed": {
-			"type": "bool",
-			"name": "Show for passed runs",
-			"description": "Keep showing the target when the run from this start position is already passed in the current stage.",
-			"default": true,
-			"enable-if": "enabled"
 		},
 		"decimals": {
 			"type": "int",

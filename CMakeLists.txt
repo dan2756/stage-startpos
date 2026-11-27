@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-project(StageStartpos VERSION 1.2.0)
+project(StageStartpos VERSION 1.2.1)
 
 add_library(${PROJECT_NAME} SHARED src/main.cpp src/PauseButton.cpp)
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.1
+- The target stays for the whole attempt again, even after the run reaches it.
+- Start positions whose run the practice mod has marked done in the current stage show just the percentage. The "Show for passed runs" setting is gone.
+
 ## v1.2.0
 - Once the run reaches its target, the target goes away and only the percentage stays.
 - Fixed the mod not loading: Geode only accepts `>=` for dependency versions.

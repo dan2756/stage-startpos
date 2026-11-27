@@ -180,9 +180,8 @@ class $modify(TargetPlayLayer, PlayLayer) {
                 );
             }
 
-            fields->m_target = target::runTarget(
-                json.unwrap(), fields->m_start, mod->getSettingValue<bool>("show-passed")
-            );
+            // A run Blitzkrieg has marked done in the current stage has no target
+            fields->m_target = target::runTarget(json.unwrap(), fields->m_start, false);
         }
     }
 
@@ -324,8 +323,9 @@ class $modify(TargetPlayLayer, PlayLayer) {
 
         fields->m_base = current;
 
-        // A run that has reached its target is done, so only the percentage stays
-        bool showTarget = fields->m_target && !reached;
+        // The target stays for the whole attempt, even past it. Blitzkrieg marks
+        // the run done when the attempt ends, and the next reset reads that.
+        bool showTarget = fields->m_target.has_value();
         auto text = showTarget
             ? fmt::format("{}/{:.{}f}%", fields->m_base, *fields->m_target, fields->m_decimals)
             : fields->m_base;

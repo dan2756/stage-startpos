@@ -8,6 +8,8 @@ The target is the end of the run that starts at your start position, in the stag
 
 In levels with a stage profile the percentage is centred under the progress bar, and the bar gets a line where the run starts and another where it has to get to.
 
-The moment the run reaches its target, a little chime plays, the target goes away and the percentage turns green, including when [Golden Best](mod:firee.goldenbest) is active. Green stays until the next attempt, when the normal percentage styling returns.
+The moment the run reaches its target, a little chime plays and the percentage turns green, including when [Golden Best](mod:firee.goldenbest) is active. Green stays until the next attempt, when the normal percentage styling returns.
 
-The percentage stays as it is when the level has no stage profile linked, or when the attempt doesn't start on one of the stage's runs.
+The target stays for the whole attempt. Once the practice mod marks the run done, which happens when the attempt ends, that start position shows just the percentage until the stage moves on.
+
+The percentage also stays as it is when the level has no stage profile linked, or when the attempt doesn't start on one of the stage's runs.
